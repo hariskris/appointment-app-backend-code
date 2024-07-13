@@ -28,7 +28,7 @@ exports.signup = async (req, res, next) => {
     res.status(201).json({ message: "User created successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error. Please try again later." });
   }
 };
 
@@ -39,13 +39,13 @@ exports.signin = async (req, res, next) => {
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: "Authentication failed" });
+      return res.status(401).json({ message: "Email not found" });
     }
 
     // Compare passwords
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Authentication failed" });
+      return res.status(401).json({ message: "Incorrect password" });
     }
 
     // Generate JWT token
@@ -58,20 +58,23 @@ exports.signin = async (req, res, next) => {
     res.status(200).json({ token });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error. Please try again later." });
   }
 };
 
 exports.deleteUser = async (req, res, next) => {
   try {
-    const userId = req.params.userId;
-
+console.log('eq.userData.userId',req.userData);
     // Delete user
-    await User.findByIdAndDelete(userId);
+    const deletedUser = await User.findByIdAndDelete(req.userData.userId);
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     res.status(200).json({ message: "User deleted successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error. Please try again later." });
   }
 };
+

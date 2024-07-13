@@ -1,12 +1,43 @@
 const Appointment = require("../models/Appointment");
+const mongoose = require('mongoose');
 
-// Get all appointments
 exports.getAppointments = async (req, res, next) => {
   try {
-    const appointments = await Appointment.find();
-    res.status(200).json(appointments);
+    // Initialize filter with userId
+    let filter = { userId: new mongoose.Types.ObjectId(req.userData.userId) };
+    
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10; // Default limit of 10 items per page
+
+    // Calculate skip based on page and limit
+    const skip = (page - 1) * limit;
+
+    // Filter by title if provided
+    if (req.query.title) {
+      filter.title = { $regex: req.query.title, $options: 'i' };
+    }
+
+    // Query appointments with pagination and sorting
+    const totalAppointments = await Appointment.countDocuments(filter);
+
+    const totalPages = Math.ceil(totalAppointments / limit);
+
+    const appointments = await Appointment.find(filter)
+      .sort({ date: 1, startTime: -1 }) // Sort by date and startTime (desc)
+      .skip(skip) // Skip records
+      .limit(limit) // Limit number of records per page
+      .populate('userId', 'name email');
+
+    const response = {
+      currentPage: page,
+      totalPages: totalPages,
+      appointments: appointments,
+    };
+
+    res.status(200).json(response);
   } catch (err) {
-    console.error(err);
+    console.error(err.message);
     res.status(500).json({ error: err.message });
   }
 };
